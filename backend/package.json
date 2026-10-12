@@ -1,0 +1,31 @@
+{
+  "name": "med-reminder-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Elderly and Universal Medication Reminder App",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/utils/seed.js",
+    "test": "node test/api.test.js"
+  },
+  "keywords": [
+    "medication",
+    "reminder",
+    "elderly",
+    "healthcare",
+    "express"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "tesseract.js": "^7.0.0",
+    "uuid": "^9.0.1"
+  }
+}
