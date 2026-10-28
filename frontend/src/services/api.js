@@ -61,7 +61,7 @@ api.interceptors.request.use(
       }
       const customUrl = await AsyncStorage.getItem('@custom_api_url');
       if (customUrl && customUrl.trim()) {
-        const trimmed = customUrl.trim();
+        const trimmed = customUrl.trim().replace(/\\/g, '/');
         // Clear invalid localhost config on native devices so it doesn't break mobile networking
         if (Platform.OS !== 'web' && (trimmed.includes('localhost') || trimmed.includes('127.0.0.1'))) {
           await AsyncStorage.removeItem('@custom_api_url');

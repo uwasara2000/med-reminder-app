@@ -60,17 +60,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (userData, autoLogin = false) => {
     try {
       setIsLoading(true);
       const res = await authApi.register(userData);
       if (res.data && res.data.success) {
         const { token: newToken, user: newUser } = res.data;
-        setToken(newToken);
-        setUser(newUser);
-        await AsyncStorage.setItem('@auth_token', newToken);
-        await AsyncStorage.setItem('@auth_user', JSON.stringify(newUser));
-        return { success: true };
+        if (autoLogin) {
+          setToken(newToken);
+          setUser(newUser);
+          await AsyncStorage.setItem('@auth_token', newToken);
+          await AsyncStorage.setItem('@auth_user', JSON.stringify(newUser));
+        }
+        return { success: true, user: newUser };
       }
       return { success: false, message: res.data?.message || 'Registration failed.' };
     } catch (error) {

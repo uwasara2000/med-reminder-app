@@ -56,74 +56,59 @@ if (fs.existsSync(expoNotifWarnPath)) {
 }
 
 // 3. Patch expo-notifications modules removed from Expo Go (TopicSubscription, PushTokenManager, ServerRegistration)
-const topicSubPath = path.join(
-  __dirname,
-  '..',
-  'node_modules',
-  'expo-notifications',
-  'build',
-  'TopicSubscriptionModule.android.js'
-);
-if (fs.existsSync(topicSubPath)) {
-  let content = fs.readFileSync(topicSubPath, 'utf8');
-  if (content.includes("requireNativeModule('ExpoTopicSubscriptionModule')")) {
+function patchOptionalModule(filePath, moduleName, fallback = '{}') {
+  if (!fs.existsSync(filePath)) return;
+  let content = fs.readFileSync(filePath, 'utf8');
+  let changed = false;
+
+  // Ensure import includes requireOptionalNativeModule
+  if (!content.includes('requireOptionalNativeModule }') && !content.includes('requireOptionalNativeModule,')) {
     content = content.replace(
-      "import { requireNativeModule } from 'expo-modules-core';",
-      "import { requireOptionalNativeModule } from 'expo-modules-core';"
-    ).replace(
-      "requireNativeModule('ExpoTopicSubscriptionModule')",
-      "(requireOptionalNativeModule('ExpoTopicSubscriptionModule') || {})"
+      /import\s*\{([^}]+)\}\s*from\s*['"](expo|expo-modules-core)['"];/,
+      (match, imports, pkg) => {
+        if (!imports.includes('requireOptionalNativeModule')) {
+          return `import { ${imports.trim()}, requireOptionalNativeModule } from '${pkg}';`;
+        }
+        return match;
+      }
     );
-    fs.writeFileSync(topicSubPath, content, 'utf8');
-    console.log('✅ Patched TopicSubscriptionModule.android.js for Expo Go');
+    changed = true;
+  }
+
+  // Wrap native module call with fallback
+  if (content.includes(`requireNativeModule('${moduleName}')`)) {
+    content = content.replace(
+      `requireNativeModule('${moduleName}')`,
+      `(requireOptionalNativeModule('${moduleName}') || ${fallback})`
+    );
+    changed = true;
+  }
+
+  if (changed) {
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`✅ Patched ${path.basename(filePath)} for Expo Go`);
+  } else {
+    console.log(`ℹ️ ${path.basename(filePath)} already patched`);
   }
 }
 
-const pushTokenPath = path.join(
-  __dirname,
-  '..',
-  'node_modules',
-  'expo-notifications',
-  'build',
-  'PushTokenManager.native.js'
+patchOptionalModule(
+  path.join(__dirname, '..', 'node_modules', 'expo-notifications', 'build', 'TopicSubscriptionModule.android.js'),
+  'ExpoTopicSubscriptionModule',
+  '{}'
 );
-if (fs.existsSync(pushTokenPath)) {
-  let content = fs.readFileSync(pushTokenPath, 'utf8');
-  if (content.includes("requireNativeModule('ExpoPushTokenManager')")) {
-    content = content.replace(
-      "import { requireNativeModule } from 'expo-modules-core';",
-      "import { requireOptionalNativeModule } from 'expo-modules-core';"
-    ).replace(
-      "requireNativeModule('ExpoPushTokenManager')",
-      "(requireOptionalNativeModule('ExpoPushTokenManager') || { addListener: () => ({ remove: () => {} }) })"
-    );
-    fs.writeFileSync(pushTokenPath, content, 'utf8');
-    console.log('✅ Patched PushTokenManager.native.js for Expo Go');
-  }
-}
 
-const serverRegPath = path.join(
-  __dirname,
-  '..',
-  'node_modules',
-  'expo-notifications',
-  'build',
-  'ServerRegistrationModule.native.js'
+patchOptionalModule(
+  path.join(__dirname, '..', 'node_modules', 'expo-notifications', 'build', 'PushTokenManager.native.js'),
+  'ExpoPushTokenManager',
+  '{ addListener: () => ({ remove: () => {} }) }'
 );
-if (fs.existsSync(serverRegPath)) {
-  let content = fs.readFileSync(serverRegPath, 'utf8');
-  if (content.includes("requireNativeModule('NotificationsServerRegistrationModule')")) {
-    content = content.replace(
-      "import { requireNativeModule } from 'expo-modules-core';",
-      "import { requireOptionalNativeModule } from 'expo-modules-core';"
-    ).replace(
-      "requireNativeModule('NotificationsServerRegistrationModule')",
-      "(requireOptionalNativeModule('NotificationsServerRegistrationModule') || {})"
-    );
-    fs.writeFileSync(serverRegPath, content, 'utf8');
-    console.log('✅ Patched ServerRegistrationModule.native.js for Expo Go');
-  }
-}
+
+patchOptionalModule(
+  path.join(__dirname, '..', 'node_modules', 'expo-notifications', 'build', 'ServerRegistrationModule.native.js'),
+  'NotificationsServerRegistrationModule',
+  '{}'
+);
 
 // 4. Patch expo-notifications/build/index.js (silence dev client warning in Expo Go)
 const expoNotifIndexPath = path.join(
